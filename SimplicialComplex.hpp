@@ -1,5 +1,6 @@
 
 // note that this code only works for triangle/tet meshes
+// TODO: optimize it from n^2 to nlg(n)
 struct Simplex {
     int d;
     Tuple t;
@@ -33,6 +34,8 @@ public:
         for (auto tmp : simplexes[s.d])
         {
             // TODO: need implement is_same_simplex for tuples
+            // is_same_simplex(t1, t2, dim, m) returns if (dim, t1) and (dim, t2) are the same simplex in Mesh m
+            // Need it in Mesh class
             if (is_same_simplex(tmp, s.t, s.d, m))
             {
                 return false;
@@ -141,7 +144,7 @@ bool is_intersect(Simplex s1, Simplex s2, Mesh &m)
 // st: start
 // clst: closed star
 // lnk: link
-/////////////////////////////////
+//////////////////////////////////
 
 // ∂s
 SimplicialComplex bd(const Simplex &s, const Mesh& m)
@@ -189,7 +192,7 @@ SimplicialComplex clbd(const Simplex &s, const Mesh& m)
 SimplicialComplex clst(const Simplex &s, const Mesh& m)
 {
     SimplicialComplex SC(m);
-    int dim = m.dim; // TODO: 2 for trimesh, 3 for tetmesh
+    int dim = m.dim; // TODO: 2 for trimesh, 3 for tetmesh need it in Mesh class
 
     if (dim == 2)
     {
@@ -339,3 +342,77 @@ SimplicialComplex st(const Simplex &s, const Mesh& m)
     }
     return SC;
 }
+
+
+//////////////////////////////////
+// check link condition
+// input Tuple t --> edge (a,b)
+// check if lnk(a) ∩ lnk(b) == lnk(ab)
+//////////////////////////////////
+bool link_cond(Tuple t, const Mesh& m)
+{
+    // TODO: implement this
+}
+
+
+//////////////////////////////////
+// k-ring
+//////////////////////////////////
+std::vector<Tuple> one_ring(Tuple t, const Mesh& m)
+{
+    Simplex s(0, t);
+    SimplicialComplex s_st = st(s, m);
+    std::vector<Tuple> Vs = s_st.get_simplexes()[1];
+    for (int i = 0; i < Vs.size(); i++)
+    {
+        if (is_same_simplex(t, Vs[i], 0, m))
+        {
+            Vs[i] = Vs[i].sw(0, m);
+        }
+    }
+    return Vs;
+}
+
+std::vector<Tuple> k_ring(Tuple t, const Mesh& m, int k)
+{
+    assert(k >= 1);
+
+    if (k == 1)
+    {
+        return one_ring(t, m);
+    }
+    else
+    {
+        std::vector<Tuple> t_one_ring = one_ring(t, m);
+        std::vector<std::vector<Tuple>>> all_ts;
+        for (auto tmp : t_one_ring)
+        {
+            all_ts.push_back(k_ring(tmp, m, k - 1));
+        }
+
+        std::vector<Tuple> ret;
+        for (auto t_vec : all_ts)
+        {
+            for (auto tmp : t_vec)
+            {
+                bool flag = true;
+                for (int i = 0; i < ret.size(); i++)
+                {
+                    if (is_same_simplex(ret[i], tmp, 0, m))
+                    {
+                        flag = false;
+                        break;
+                    }
+                    if (flag)
+                    {
+                        ret.push_back(tmp);
+                    }
+                }
+            }
+        }
+    
+        return ret;
+    }
+}
+
+
