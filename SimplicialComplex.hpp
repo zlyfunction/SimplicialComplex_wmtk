@@ -260,7 +260,24 @@ SimplicialComplex clst(const Simplex &s, const Mesh& m)
             }
             break;
         case 1:
-            // TODO:
+            std::queue<Tuple> q;
+            q.push(s.t);
+            while (!q.empty())
+            {
+                auto t = q.front();
+                q.pop();
+                if (SC.AddSimplex(Simplex(3, t)))
+                {
+                    if (!t.boundary(m))
+                    {
+                        q.push(t.sw(3, m));
+                    }
+                    if (!t.sw(2, m).boundary(m))
+                    {
+                        q.push(t.sw(2, m).sw(3, m));
+                    }
+                }
+            }
             break;
         case 2:
             SC.addSimplex(Simplex(3, s.t));
@@ -275,10 +292,7 @@ SimplicialComplex clst(const Simplex &s, const Mesh& m)
         default:
             assert(false);
             break;
-        }
-
-
-        
+        }  
     }
 
     auto top_tuples = SC.get_simplexes[dim];
