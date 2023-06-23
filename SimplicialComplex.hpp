@@ -125,17 +125,6 @@ SimplicialComplex SC_intersect(const SimplicialComplex &A, const SimplicialCompl
     return SC_intersect;
 }
 
-
-// Simplex s1,s2, check if A∩B!=∅
-// check is intersect(∂s1, ∂s2) has intersections
-bool is_intersect(Simplex s1, Simplex s2, Mesh &m)
-{
-    SimplicialComplex s1_bd = clbd(s1);
-    SimplicialComplex s2_bd = clbd(s2);
-    SimplicialComplex s1_s2_int = SC_intersect(s1_bd, s2_bd, m);
-    return (s1_s2_int.get_size() != 0);
-}
-
 //////////////////////////////////
 // List of Operators
 // bd: boundary
@@ -186,6 +175,16 @@ SimplicialComplex clbd(const Simplex &s, const Mesh& m)
     SimplicialComplex SC = bd(s, m);
     SC.AddSimplex(s);
     return SC;
+}
+
+// Simplex s1,s2, check if A∩B!=∅
+// check is intersect(∂s1, ∂s2) has intersections
+bool is_intersect(Simplex s1, Simplex s2, Mesh &m)
+{
+    SimplicialComplex s1_bd = clbd(s1);
+    SimplicialComplex s2_bd = clbd(s2);
+    SimplicialComplex s1_s2_int = SC_intersect(s1_bd, s2_bd, m);
+    return (s1_s2_int.get_size() != 0);
 }
 
 SimplicialComplex clst(const Simplex &s, const Mesh& m)
