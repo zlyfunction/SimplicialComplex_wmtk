@@ -138,54 +138,46 @@ SimplicialComplex SC_intersect(const SimplicialComplex &A, const SimplicialCompl
 SimplicialComplex bd(const Simplex &s, const Mesh& m)
 {
     SimplicialComplex SC(m);
-    std::queue<Simplex> q;
-    q.push(s);
 
-    while (!q.empty())
+    // exhaustive implementation
+    switch (s.d)
     {
-        auto cur_s = q.front();
-        q.pop();
-
-        switch (cur_s.d - 1)
-        {
-        case 0: // V
-            SC.AddSimplex(Simplex(0, cur_s.t));
-            SC.AddSimplex(Simplex(0, cur_s.t.sw(0, m)));
-            break;
-        
-        case 1: // E
-            if (SC.AddSimplex(Simplex(1, cur_s.t)))
-            {
-                q.push(Simplex(1, cur_s.t));
-            }
-            if (SC.AddSimplex(Simplex(1, cur_s.t.sw(1, m))))
-            {
-                q.push(Simplex(1, cur_s.t.sw(1, m)));
-            }
-            if (SC.AddSimplex(Simplex(1, cur_s.t.sw(0, m).sw(1, m))))
-            {
-                q.push(Simplex(1, cur_s.t.sw(0, m).sw(1, m)));
-            }
-            break;
-            
-        case 2: // F
-            if (SC.AddSimplex(Simplex(2, cur_s.t)))
-            {
-                q.push(Simplex(2, cur_s.t));
-            }
-            if (SC.AddSimplex(Simplex(2, cur_s.t.sw(2, m))))
-            {
-                q.push(Simplex(2, cur_s.t.sw(2, m)));
-            }
-            if (SC.AddSimplex(Simplex(2, cur_s.t.sw(1, m).sw(2, m))))
-            {
-                q.push(Simplex(2, cur_s.t.sw(1, m).sw(2, m)));
-            }
-            if (SC.AddSimplex(Simplex(2, cur_s.t.sw(0, m).sw(1, m).sw(2, m))))
-            {
-                q.push(Simplex(2, cur_s.t.sw(0, m).sw(1, m).sw(2, m)));
-            }
-        }
+    case 3: // bd(tet) = 4triangles + 6 edges + 4vertices
+        SC.AddSimplex(Simplex(0, s.t));                                         // A
+        SC.AddSimplex(Simplex(0, s.t.sw(0, m)));                                // B
+        SC.AddSimplex(Simplex(0, s.t.sw(1, m).sw(0, m)));                       // C
+        SC.AddSimplex(Simplex(0, s.t.sw(2, m).sw(0, m)));                       // D
+        SC.AddSimplex(Simplex(1, s.t));                                         // AB
+        SC.AddSimplex(Simplex(1, s.t.sw(1, m)));                                // AC
+        SC.AddSimplex(Simplex(1, s.t.sw(0, m).sw(1, m)));                       // BC
+        SC.AddSimplex(Simplex(1, s.t.sw(2, m).sw(1, m)));                       // AD
+        SC.AddSimplex(Simplex(1, s.t.sw(0, m).sw(2, m).sw(1, m)));              // BD 
+        SC.AddSimplex(Simplex(1, s.t.sw(1, m).sw(0, m).sw(2, m).sw(1, m)));     // CD
+        SC.AddSimplex(Simplex(2, s.t));                                         // ABC
+        SC.AddSimplex(Simplex(2, s.t.sw(2, m)));                                // ABD
+        SC.AddSimplex(Simplex(2, s.t.sw(1, m).sw(2, m)));                       // ACD
+        SC.AddSimplex(Simplex(2, s.t.sw(0, m).sw(1, m).sw(2, m)));              // BCD
+        break;
+    case 2: // bd(triangle) = 3edges + 3vertices
+        SC.AddSimplex(Simplex(0, s.t));
+        SC.AddSimplex(Simplex(0, s.t.sw(0, m)));
+        SC.AddSimplex(Simplex(0, s.t.sw(1, m).sw(0, m)));
+        SC.AddSimplex(Simplex(1, s.t));
+        SC.AddSimplex(Simplex(1, s.t.sw(1, m)));
+        SC.AddSimplex(Simplex(1, s.t.sw(0, m).sw(1, m)));
+        /* code */
+        break;
+    case 1:
+        // bd(edge) = 2 vertices
+        SC.AddSimplex(Simplex(0, s.t));
+        SC.AddSimplex(Simplex(0, s.t.sw(0, m)));
+        /* code */
+        break;
+    case 0:
+        break;        
+    default:
+        assert(false);
+        break;
     }
 
     return SC;
