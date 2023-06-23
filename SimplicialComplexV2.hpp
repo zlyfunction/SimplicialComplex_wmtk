@@ -459,7 +459,7 @@ std::vector<Tuple> k_ring(Tuple t, const Mesh &m, int k)
         return {};
 
     SimplicialComplex sc(vertex_one_ring(t, m), 0);
-    for (int i = 2; i < k; ++i)
+    for (int i = 2; i <= k; ++i)
     {
         const auto simplices = sc.get_simplices();
         for (const Simplex &s : simplices)
