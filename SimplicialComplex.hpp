@@ -30,7 +30,7 @@ public:
 
     bool AddSimplex(Simplex s)
     {
-        assert(s.d <= 4);
+        assert(s.d < 4);
         for (auto tmp : simplexes[s.d])
         {
             // TODO: need implement is_same_simplex for tuples
