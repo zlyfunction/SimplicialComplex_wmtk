@@ -412,7 +412,7 @@ SimplicialComplex open_star(const Simplex &s, const Mesh &m)
     sc.add_simplex(s);
     for (const Simplex &ss : sc_clst.get_simplices())
     {
-        if (ss.dimension <= s.dimension())
+        if (ss.dimension() <= s.dimension())
         {
             continue;
         }
