@@ -428,7 +428,11 @@ SimplicialComplex open_star(const Simplex &s, const Mesh &m)
 //////////////////////////////////
 bool link_cond(Tuple t, const Mesh &m)
 {
-    // TODO: implement this
+    SimplicialComplex lhs = link(Simplex(t, 0), m); // lnk(a)
+    lhs.unify_with_complex(link(Simplex(t.sw(0, m), 0), m)); // Union lnk(b)
+
+    SimplicialComplex rhs = link(Simplex(t, 1), m); // lnk(ab)
+    return (lhs == rhs);
 }
 
 //////////////////////////////////
