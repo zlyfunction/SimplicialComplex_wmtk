@@ -350,7 +350,11 @@ SimplicialComplex st(const Simplex &s, const Mesh& m)
 //////////////////////////////////
 bool link_cond(Tuple t, const Mesh& m)
 {
-    // TODO: implement this
+    SimplicialComplex lhs = lnk(Simplex(t, 0), m); // lnk(a)
+    lhs.unionComplex(lnk(Simplex(t.sw(0, m), 0), m)); // Union lnk(b)
+
+    SimplicialComplex rhs = lnk(Simplex(t, 1), m); // lnk(ab)
+    return (lhs == rhs);
 }
 
 
