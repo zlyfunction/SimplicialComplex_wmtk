@@ -47,7 +47,7 @@ public:
     
     void unionComplex(const SimplicialComplex &other)
     {
-        for (int d = 0; d <= 4; d++)
+        for (int d = 0; d < 4; d++)
         {
             for (auto t : other.simplexes[d])
             {
