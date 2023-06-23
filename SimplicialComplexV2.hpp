@@ -2,19 +2,28 @@
 #include <set>
 #include <cassert>
 
-using Tuple = double; // random dummy to remove IDE errors
+struct Tuple;
 
 struct Mesh
 {
     Tuple sw(const Tuple &t, const int &d) const
     {
         throw std::exception("This is a dummy implementation!");
-        return 0;
+        return {};
     }
     bool is_boundary(const Tuple &t, const int &d) const
     {
         throw std::exception("This is a dummy implementation!");
         return false;
+    }
+};
+
+struct Tuple
+{
+    Tuple sw(const int &d, const Mesh *m) const
+    {
+        throw std::exception("This is a dummy implementation!");
+        return m->sw(*this, d);
     }
 };
 
@@ -54,11 +63,11 @@ public:
 class SimplicialComplex
 {
 private:
-    std::set<Simplex, std::less<Simplex>> simplexes;
+    std::set<Simplex> simplexes;
     const Mesh *m;
 
 public:
-    const std::vector<Simplex> &get_simplexes() const
+    const std::set<Simplex> &get_simplexes() const
     {
         return simplexes;
     }
@@ -178,38 +187,50 @@ inline bool is_intersect(Simplex s1, Simplex s2)
  */
 SimplicialComplex bd(const Simplex &s, const Mesh *m)
 {
-    SimplicialComplex sc(m);
-    switch (s._d)
+    SimplicialComplex SC(m);
+
+    // exhaustive implementation
+    switch (s.dimension())
     {
-    case 0: // vertex
+    case 3:                                                                        // bd(tet) = 4triangles + 6 edges + 4vertices
+        SC.add_simplex(Simplex(0, s.tuple()));                                     // A
+        SC.add_simplex(Simplex(0, s.tuple().sw(0, m)));                            // B
+        SC.add_simplex(Simplex(0, s.tuple().sw(1, m).sw(0, m)));                   // C
+        SC.add_simplex(Simplex(0, s.tuple().sw(2, m).sw(0, m)));                   // D
+        SC.add_simplex(Simplex(1, s.tuple()));                                     // AB
+        SC.add_simplex(Simplex(1, s.tuple().sw(1, m)));                            // AC
+        SC.add_simplex(Simplex(1, s.tuple().sw(0, m).sw(1, m)));                   // BC
+        SC.add_simplex(Simplex(1, s.tuple().sw(2, m).sw(1, m)));                   // AD
+        SC.add_simplex(Simplex(1, s.tuple().sw(0, m).sw(2, m).sw(1, m)));          // BD
+        SC.add_simplex(Simplex(1, s.tuple().sw(1, m).sw(0, m).sw(2, m).sw(1, m))); // CD
+        SC.add_simplex(Simplex(2, s.tuple()));                                     // ABC
+        SC.add_simplex(Simplex(2, s.tuple().sw(2, m)));                            // ABD
+        SC.add_simplex(Simplex(2, s.tuple().sw(1, m).sw(2, m)));                   // ACD
+        SC.add_simplex(Simplex(2, s.tuple().sw(0, m).sw(1, m).sw(2, m)));          // BCD
         break;
-    case 1: // edge
-        sc.add_simplex({0, s._t});
-        sc.add_simplex({0, m->sw(s._t, 0)});
+    case 2: // bd(triangle) = 3edges + 3vertices
+        SC.add_simplex(Simplex(0, s.tuple()));
+        SC.add_simplex(Simplex(0, s.tuple().sw(0, m)));
+        SC.add_simplex(Simplex(0, s.tuple().sw(1, m).sw(0, m)));
+        SC.add_simplex(Simplex(1, s.tuple()));
+        SC.add_simplex(Simplex(1, s.tuple().sw(1, m)));
+        SC.add_simplex(Simplex(1, s.tuple().sw(0, m).sw(1, m)));
+        /* code */
         break;
-
-        ////////////////////////////////////////
-        //// TODO: GO ON HERE
-    case 2: // face
-        sc.add_simplex({1, s._t});
-        sc.add_simplex({1, m->sw(s._t, 1)});
-        sc.add_simplex({1, m->sw(m->sw(s._t, 0), 1)});
+    case 1:
+        // bd(edge) = 2 vertices
+        SC.add_simplex(Simplex(0, s.tuple()));
+        SC.add_simplex(Simplex(0, s.tuple().sw(0, m)));
+        /* code */
         break;
-
-    case 3: // tet
-        sc.add_simplex({2, s._t});
-        sc.add_simplex({2, s._t.sw(2, m)});
-        sc.add_simplex({2, s._t.sw(1, m).sw(2, m)});
-        sc.add_simplex({2, s._t.sw(0, m).sw(1, m).sw(2, m)});
-
+    case 0:
         break;
-
     default:
         assert(false);
         break;
     }
 
-    return sc;
+    return SC;
 }
 
 // ∂s∪{s}
