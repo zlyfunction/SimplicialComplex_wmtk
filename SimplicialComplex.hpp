@@ -138,34 +138,56 @@ SimplicialComplex SC_intersect(const SimplicialComplex &A, const SimplicialCompl
 SimplicialComplex bd(const Simplex &s, const Mesh& m)
 {
     SimplicialComplex SC(m);
-    for (int d = 0; d < s.d; d++)
+    std::queue<Simplex> q;
+    q.push(s);
+
+    while (!q.empty())
     {
-        switch (d)
+        auto cur_s = q.front();
+        q.pop();
+
+        switch (cur_s.d - 1)
         {
         case 0: // V
-            SC.AddSimplex(Simplex(0, s.t));
-            SC.AddSimplex(Simplex(0, s.t.sw(0, m)));
+            SC.AddSimplex(Simplex(0, cur_s.t));
+            SC.AddSimplex(Simplex(0, cur_s.t.sw(0, m)));
             break;
         
         case 1: // E
-            SC.AddSimplex(Simplex(1, s.t));
-            SC.AddSimplex(Simplex(1, s.t.sw(1, m)));
-            SC.AddSimplex(Simplex(1, s.t.sw(0, m).sw(1, m)));
+            if (SC.AddSimplex(Simplex(1, cur_s.t)))
+            {
+                q.push(Simplex(1, cur_s.t));
+            }
+            if (SC.AddSimplex(Simplex(1, cur_s.t.sw(1, m))))
+            {
+                q.push(Simplex(1, cur_s.t.sw(1, m)));
+            }
+            if (SC.AddSimplex(Simplex(1, cur_s.t.sw(0, m).sw(1, m))))
+            {
+                q.push(Simplex(1, cur_s.t.sw(0, m).sw(1, m)));
+            }
             break;
             
         case 2: // F
-            SC.AddSimplex(Simplex(2, s.t));
-            SC.AddSimplex(Simplex(2, s.t.sw(2, m)));
-            SC.AddSimplex(Simplex(2, s.t.sw(1, m).sw(2, m)));
-            SC.AddSimplex(Simplex(2, s.t.sw(0, m).sw(1, m).sw(2, m)));
-
-            break;
-
-        default:
-            assert(false);
-            break;
+            if (SC.AddSimplex(Simplex(2, cur_s.t)))
+            {
+                q.push(Simplex(2, cur_s.t));
+            }
+            if (SC.AddSimplex(Simplex(2, cur_s.t.sw(2, m))))
+            {
+                q.push(Simplex(2, cur_s.t.sw(2, m)));
+            }
+            if (SC.AddSimplex(Simplex(2, cur_s.t.sw(1, m).sw(2, m))))
+            {
+                q.push(Simplex(2, cur_s.t.sw(1, m).sw(2, m)));
+            }
+            if (SC.AddSimplex(Simplex(2, cur_s.t.sw(0, m).sw(1, m).sw(2, m))))
+            {
+                q.push(Simplex(2, cur_s.t.sw(0, m).sw(1, m).sw(2, m)));
+            }
         }
     }
+
     return SC;
 }
 
