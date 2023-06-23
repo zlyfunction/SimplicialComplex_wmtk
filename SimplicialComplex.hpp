@@ -30,7 +30,7 @@ public:
 
     bool AddSimplex(Simplex s)
     {
-        assert(s.d <= 4);
+        assert(s.d < 4);
         for (auto tmp : simplexes[s.d])
         {
             // TODO: need implement is_same_simplex for tuples
@@ -45,9 +45,9 @@ public:
         return true;
     }
     
-    void union(const SimplicialComplex &other)
+    void unionComplex(const SimplicialComplex &other)
     {
-        for (int d = 0; d <= 4; d++)
+        for (int d = 0; d < 4; d++)
         {
             for (auto t : other.simplexes[d])
             {
@@ -67,7 +67,7 @@ public:
             for (auto t1 : simplexes[d])
             {
                 bool flag = false;
-                for (auto t2 : other.simplexes[])
+                for (auto t2 : other.simplexes[d])
                 {
                     if (is_same_simplex(t1, t2, d, m))
                     {
@@ -86,7 +86,6 @@ public:
         if (this != &other) 
         {
             this->simplexes = other.simplexes;
-            this->m = other.m;
         }
         return *this;
     }
@@ -116,9 +115,9 @@ SimplicialComplex SC_intersect(const SimplicialComplex &A, const SimplicialCompl
     {
         for (auto t : s_B)
         {
-            if (!SC_union.addSimplex(Simplex(d, t)))
+            if (!SC_union.AddSimplex(Simplex(d, t)))
             {
-                SC_intersect.addSimplex(Simplex(d, t));
+                SC_intersect.AddSimplex(Simplex(d, t));
             }
         }
     }
@@ -132,7 +131,7 @@ SimplicialComplex SC_intersect(const SimplicialComplex &A, const SimplicialCompl
 bool is_intersect(Simplex s1, Simplex s2, Mesh &m)
 {
     SimplicialComplex s1_bd = clbd(s1);
-    SimplicialComplex s2_bd = cldb(s2);
+    SimplicialComplex s2_bd = clbd(s2);
     SimplicialComplex s1_s2_int = SC_intersect(s1_bd, s2_bd, m);
     return (s1_s2_int.get_size() != 0);
 }
@@ -298,10 +297,10 @@ SimplicialComplex clst(const Simplex &s, const Mesh& m)
         }  
     }
 
-    auto top_tuples = SC.get_simplexes[dim];
+    auto top_tuples = SC.get_simplexes()[dim];
     for (Tuple t : top_tuples)
     {
-      SC.union(bd(Simplex(dim, t),m));
+      SC.unionComplex(bd(Simplex(dim, t),m));
     }
     return SC;
 }
@@ -351,7 +350,11 @@ SimplicialComplex st(const Simplex &s, const Mesh& m)
 //////////////////////////////////
 bool link_cond(Tuple t, const Mesh& m)
 {
-    // TODO: implement this
+    SimplicialComplex lhs = lnk(Simplex(t, 0), m); // lnk(a)
+    lhs.unionComplex(lnk(Simplex(t.sw(0, m), 0), m)); // Union lnk(b)
+
+    SimplicialComplex rhs = lnk(Simplex(t, 1), m); // lnk(ab)
+    return (lhs == rhs);
 }
 
 
@@ -384,7 +387,7 @@ std::vector<Tuple> k_ring(Tuple t, const Mesh& m, int k)
     else
     {
         std::vector<Tuple> t_one_ring = one_ring(t, m);
-        std::vector<std::vector<Tuple>>> all_ts;
+        std::vector<std::vector<Tuple>> all_ts;
         for (auto tmp : t_one_ring)
         {
             all_ts.push_back(k_ring(tmp, m, k - 1));
