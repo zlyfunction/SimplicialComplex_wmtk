@@ -1,6 +1,7 @@
 #include <vector>
 #include <set>
 #include <cassert>
+#include <queue>
 
 struct Tuple;
 
@@ -16,6 +17,12 @@ struct Mesh
         throw std::exception("This is a dummy implementation!");
         return false;
     }
+
+    int cell_dimension() const
+    {
+        throw std::exception("This is a dummy implementation!");
+        return 3;
+    }
 };
 
 struct Tuple
@@ -24,6 +31,12 @@ struct Tuple
     {
         throw std::exception("This is a dummy implementation!");
         return m->sw(*this, d);
+    }
+
+    bool is_boundary(const Mesh *m) const
+    {
+        throw std::exception("This is a dummy implementation!");
+        return false;
     }
 };
 
@@ -67,9 +80,23 @@ private:
     const Mesh *m;
 
 public:
-    const std::set<Simplex> &get_simplexes() const
+    const std::set<Simplex> &get_simplices() const
     {
         return simplexes;
+    }
+
+    std::set<Simplex> get_simplices(const int &dim) const
+    {
+        std::set<Simplex> ret;
+        for (const Simplex &s : simplexes)
+        {
+            if (s.dimension() == dim)
+            {
+                ret.insert(s);
+            }
+        }
+
+        return ret;
     }
 
     // TODO why do we need that?
@@ -98,7 +125,7 @@ public:
     void unify_with_complex(const SimplicialComplex &other)
     {
         // this is N log(N) complexity
-        for (const Simplex &s : other.get_simplexes())
+        for (const Simplex &s : other.get_simplices())
         {
             add_simplex(s);
         }
@@ -150,7 +177,7 @@ inline SimplicialComplex get_intersection(const SimplicialComplex &A, const Simp
     SimplicialComplex sc_union = A;
     SimplicialComplex sc_intersection(A.get_mesh());
 
-    for (const auto &s : B.get_simplexes())
+    for (const auto &s : B.get_simplices())
     {
         if (!sc_union.add_simplex(s))
         {
@@ -160,16 +187,6 @@ inline SimplicialComplex get_intersection(const SimplicialComplex &A, const Simp
     }
 
     return sc_intersection;
-}
-
-// Simplex s1,s2, check if A∩B!=∅
-// check is intersect(∂s1, ∂s2) has intersections
-inline bool is_intersect(Simplex s1, Simplex s2)
-{
-    SimplicialComplex s1_bd = clbd(s1);
-    SimplicialComplex s2_bd = cldb(s2);
-    SimplicialComplex s1_s2_int = get_intersection(s1_bd, s2_bd);
-    return (s1_s2_int.get_size() != 0);
 }
 
 //////////////////////////////////
@@ -234,139 +251,170 @@ SimplicialComplex bd(const Simplex &s, const Mesh *m)
 }
 
 // ∂s∪{s}
-SimplicialComplex clbd(const Simplex &s, const Mesh &m)
+/**
+ * @brief get complex of a simplex and its boundary
+ */
+SimplicialComplex simplex_with_boundary(const Simplex &s, const Mesh *m)
 {
-    SimplicialComplex SC = bd(s, m);
-    SC.AddSimplex(s);
-    return SC;
+    SimplicialComplex sc = bd(s, m);
+    sc.add_simplex(s);
+    return sc;
 }
 
-SimplicialComplex clst(const Simplex &s, const Mesh &m)
+// Simplex s1,s2, check if A∩B!=∅
+// check is intersect(∂s1, ∂s2) has intersections
+/**
+ * @brief check if simplices with their boundary intersect
+ */
+inline bool simplices_wbd_intersect(const Simplex &s1, const Simplex &s2, const Mesh *m)
 {
-    SimplicialComplex SC(m);
-    int dim = m.dim; // TODO: 2 for trimesh, 3 for tetmesh need it in Mesh class
+    SimplicialComplex s1_bd = simplex_with_boundary(s1, m);
+    SimplicialComplex s2_bd = simplex_with_boundary(s2, m);
+    SimplicialComplex s1_s2_int = get_intersection(s1_bd, s2_bd);
+    return (s1_s2_int.get_size() != 0);
+}
 
-    if (dim == 2)
+SimplicialComplex clst(const Simplex &s, const Mesh *m)
+{
+    SimplicialComplex sc(m);
+    const int &cell_dim = m->cell_dimension(); // TODO: 2 for trimesh, 3 for tetmesh need it in Mesh class
+
+    if (cell_dim == 2)
     {
-        switch (s._d)
+        switch (s.dimension())
         {
         case 0:
+        {
             std::queue<Tuple> q;
-            q.push(s._t);
+            q.push(s.tuple());
             while (!q.empty())
             {
-                auto t = q.front();
+                const Tuple t = q.front();
                 q.pop();
-                if (SC.AddSimplex(Simplex(2, t)))
+                if (sc.add_simplex(Simplex(2, t)))
                 {
-                    if (!t.boundary(m))
+                    if (!t.is_boundary(m))
                     {
                         q.push(t.sw(2, m));
                     }
-                    if (!t.sw(1, m).boundary(m))
+                    if (!t.sw(1, m).is_boundary(m))
                     {
                         q.push(t.sw(1, m).sw(2, m));
                     }
                 }
             }
             break;
+        }
         case 1:
-            SC.add_simplex(Simplex(2, s._t));
-            if (!s._t.boundary(m))
+            sc.add_simplex(Simplex(2, s.tuple()));
+            if (!s.tuple().is_boundary(m))
             {
-                SC.add_simplex(Simplex(2, s._t.sw(2, m)));
+                sc.add_simplex(Simplex(2, s.tuple().sw(2, m)));
             }
             break;
         case 2:
-            SC.add_simplex(s);
+            sc.add_simplex(s);
             break;
         default:
             assert(false);
             break;
         }
     }
-    else if (dim == 3)
+    else if (cell_dim == 3)
     {
-        switch (s._d)
+        switch (s.dimension())
         {
         case 0:
+        {
             std::queue<Tuple> q;
-            q.push(s._t);
+            q.push(s.tuple());
             while (!q.empty())
             {
-                auto t = q.front();
+                Tuple t = q.front();
                 q.pop();
-                if (SC.AddSimplex(Simplex(3, t)))
+                if (sc.add_simplex(Simplex(3, t)))
                 {
-                    if (!t.boundary(m))
+                    const Tuple t1 = t;
+                    const Tuple t2 = t.sw(2, m);
+                    const Tuple t3 = t.sw(1, m).sw(2, m);
+                    if (!t1.is_boundary(m))
                     {
-                        q.push(t.sw(3, m));
+                        q.push(t1.sw(3, m));
                     }
-                    if (!t.sw(2, m).boundary(m))
+                    if (!t2.is_boundary(m))
                     {
-                        q.push(t.sw(2, m).sw(3, m));
+                        q.push(t2.sw(3, m));
                     }
-                    if (!t.sw(1, m).sw(2, m).boundary(m))
+                    if (!t3.is_boundary(m))
                     {
-                        q.push(t.sw(1, m).sw(2, m).sw(3, m));
+                        q.push(t3.sw(3, m));
                     }
                 }
             }
             break;
+        }
         case 1:
+        {
             std::queue<Tuple> q;
-            q.push(s._t);
+            q.push(s.tuple());
             while (!q.empty())
             {
-                auto t = q.front();
+                Tuple t = q.front();
                 q.pop();
-                if (SC.AddSimplex(Simplex(3, t)))
+                if (sc.add_simplex(Simplex(3, t)))
                 {
-                    if (!t.boundary(m))
+                    if (!t.is_boundary(m))
                     {
                         q.push(t.sw(3, m));
                     }
-                    if (!t.sw(2, m).boundary(m))
+                    if (!t.sw(2, m).is_boundary(m))
                     {
                         q.push(t.sw(2, m).sw(3, m));
                     }
                 }
             }
             break;
+        }
         case 2:
-            SC.add_simplex(Simplex(3, s._t));
-            if (!s._t.boundary(m))
+        {
+            sc.add_simplex(Simplex(3, s.tuple()));
+            if (!s.tuple().is_boundary(m))
             {
-                SC.add_simplex(Simplex(3, s._t.sw(3, m)));
+                sc.add_simplex(Simplex(3, s.tuple().sw(3, m)));
             }
             break;
+        }
         case 3:
-            SC.add_simplex(s);
+        {
+            sc.add_simplex(s);
             break;
+        }
         default:
+        {
             assert(false);
             break;
+        }
         }
     }
 
-    auto top_tuples = SC.get_simplexes[dim];
-    for (Tuple t : top_tuples)
+    const auto top_simplices = sc.get_simplices();
+    for (const Simplex &ts : top_simplices)
     {
-        SC.union(bd(Simplex(dim, t), m));
+        sc.unify_with_complex(bd(ts, m));
     }
-    return SC;
+    return sc;
 }
 
 SimplicialComplex lnk(const Simplex &s, const Mesh &m)
 {
     SimplicialComplex SC_clst = clst(s, m);
     SimplicialComplex SC(m);
-    auto simplexes = SC_clst.get_simplexes();
+    auto simplexes = SC_clst.get_simplices();
     for (int d = 0; d < 4; d++)
     {
         for (auto t : simplexes[d])
         {
-            if (!is_intersect(s, Simplex(d, t)))
+            if (!simplices_wbd_intersect(s, Simplex(d, t)))
             {
                 SC.add_simplex(Simplex(d, t));
             }
@@ -380,12 +428,12 @@ SimplicialComplex st(const Simplex &s, const Mesh &m)
     SimplicialComplex SC_clst = clst(s, m);
     SimplicialComplex SC;
     SC.add_simplex(s);
-    auto simplexes = SC_clst.get_simplexes();
+    auto simplexes = SC_clst.get_simplices();
     for (int d = s._d + 1; d < 4; d++)
     {
         for (auto t : simplexes[d])
         {
-            if (is_intersect(s, Simplex(d, t)))
+            if (simplices_wbd_intersect(s, Simplex(d, t)))
             {
                 SC.add_simplex(Simplex(d, t));
             }
@@ -411,7 +459,7 @@ std::vector<Tuple> one_ring(Tuple t, const Mesh &m)
 {
     Simplex s(0, t);
     SimplicialComplex s_st = st(s, m);
-    std::vector<Tuple> Vs = s_st.get_simplexes()[1];
+    std::vector<Tuple> Vs = s_st.get_simplices()[1];
     for (int i = 0; i < Vs.size(); i++)
     {
         if (is_same_simplex(t, Vs[i], 0, m))
