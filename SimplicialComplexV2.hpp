@@ -405,41 +405,35 @@ SimplicialComplex clst(const Simplex &s, const Mesh *m)
     return sc;
 }
 
-SimplicialComplex lnk(const Simplex &s, const Mesh &m)
+SimplicialComplex lnk(const Simplex &s, const Mesh *m)
 {
-    SimplicialComplex SC_clst = clst(s, m);
-    SimplicialComplex SC(m);
-    auto simplexes = SC_clst.get_simplices();
-    for (int d = 0; d < 4; d++)
+    SimplicialComplex sc_clst = clst(s, m);
+    SimplicialComplex sc(m);
+    for (const Simplex &ss : sc_clst.get_simplices())
     {
-        for (auto t : simplexes[d])
+        if (!simplices_wbd_intersect(s, ss, m))
         {
-            if (!simplices_wbd_intersect(s, Simplex(d, t)))
-            {
-                SC.add_simplex(Simplex(d, t));
-            }
+            sc.add_simplex(ss);
         }
     }
-    return SC;
+
+    return sc;
 }
 
-SimplicialComplex st(const Simplex &s, const Mesh &m)
+SimplicialComplex st(const Simplex &s, const Mesh *m)
 {
-    SimplicialComplex SC_clst = clst(s, m);
-    SimplicialComplex SC;
-    SC.add_simplex(s);
-    auto simplexes = SC_clst.get_simplices();
-    for (int d = s._d + 1; d < 4; d++)
+    SimplicialComplex sc_clst = clst(s, m);
+    SimplicialComplex sc(m);
+    sc.add_simplex(s);
+    for (const Simplex &ss : sc_clst.get_simplices())
     {
-        for (auto t : simplexes[d])
+        if (simplices_wbd_intersect(s, ss, m))
         {
-            if (simplices_wbd_intersect(s, Simplex(d, t)))
-            {
-                SC.add_simplex(Simplex(d, t));
-            }
+            sc.add_simplex(ss);
         }
     }
-    return SC;
+
+    return sc;
 }
 
 //////////////////////////////////
